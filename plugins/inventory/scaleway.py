@@ -171,7 +171,7 @@ import json
 
 from ansible.errors import AnsibleError
 from ansible.plugins.inventory import BaseInventoryPlugin, Constructable
-from ansible_collections.Sh4d1.scaleway.plugins.module_utils.scaleway import SCALEWAY_LOCATION, parse_pagination_link
+from ansible_collections.sh4d1.scaleway.plugins.module_utils.scaleway import SCALEWAY_LOCATION, parse_pagination_link
 from ansible.module_utils.urls import open_url
 from ansible.module_utils._text import to_native
 

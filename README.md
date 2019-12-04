@@ -1,3 +1,3 @@
-# Ansible Collection - Sh4d1.scaleway
+# Ansible Collection - sh4d1.scaleway
 
 Documentation for the collection.
