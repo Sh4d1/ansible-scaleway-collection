@@ -13,7 +13,7 @@ def scaleway_argument_spec():
                        no_log=True, aliases=['oauth_token']),
         api_url=dict(fallback=(env_fallback, ['SCW_API_URL']), default='https://api.scaleway.com', aliases=['base_url']),
         api_timeout=dict(type='int', default=30, aliases=['timeout']),
-        query_parameters=dict(type='dict', default={}),
+        organization_id=dict(fallback=(env_fallback, ['SCW_ORGANIZATION_ID', SCW_DEFAULT_ORGANIZATION_ID])),
         validate_certs=dict(default=True, type='bool'),
     )
 

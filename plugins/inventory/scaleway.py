@@ -41,6 +41,11 @@ DOCUMENTATION = '''
                 - name: SCW_TOKEN
                 - name: SCW_API_KEY
                 - name: SCW_OAUTH_TOKEN
+        organization_id:
+            description: Organization ID to use
+            env:
+                - name: SCW_ORGANIZATION_ID
+                - name: SCW_DEFAULT_ORGANIZATION_ID
         hostnames:
             description: List of preference about what to use as an hostname.
             type: list
@@ -174,6 +179,7 @@ from ansible.plugins.inventory import BaseInventoryPlugin, Constructable
 from ansible_collections.sh4d1.scaleway.plugins.module_utils.scaleway import SCALEWAY_LOCATION, parse_pagination_link
 from ansible.module_utils.urls import open_url
 from ansible.module_utils._text import to_native
+from ansible.module_utils.six.moves.urllib.parse import urlencode
 
 import ansible.module_utils.six.moves.urllib.parse as urllib_parse
 
@@ -207,8 +213,8 @@ def _fetch_information(token, url):
         paginated_url = urllib_parse.urljoin(paginated_url, relations['next'])
 
 
-def _build_server_url(api_endpoint):
-    return "/".join([api_endpoint, "servers"])
+def _build_server_url(api_endpoint, query_string):
+    return '%s/%s?%s' % (api_endpoint, "servers", query_string)
 
 
 def extract_public_ipv4(server_info):
@@ -338,11 +344,11 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 
         return None
 
-    def do_zone_inventory(self, zone, token, tags, mandatory_tags, exclude_tags, hostname_preferences):
+    def do_zone_inventory(self, zone, token, tags, mandatory_tags, exclude_tags, hostname_preferences, query_parameters):
         self.inventory.add_group(zone)
         zone_info = SCALEWAY_LOCATION[zone]
 
-        url = _build_server_url(zone_info["api_endpoint"])
+        url = _build_server_url(zone_info["api_endpoint"], query_parameters)
         raw_zone_hosts_infos = _fetch_information(url=url, token=token)
 
         for host_infos in raw_zone_hosts_infos:
@@ -374,7 +380,11 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         exclude_tags = self.get_option("exclude_tags")
         token = self.get_option("oauth_token")
         hostname_preference = self.get_option("hostnames")
+        organization_id = self.get_option("organization_id")
+        query_parameters = ""
+        if organization_id is not None:
+            query_parameters = urlencode({"organization": organization_id}, doseq=True)
 
         for zone in self._get_zones(config_zones):
             self.do_zone_inventory(zone=zone, token=token, tags=tags, mandatory_tags=mandatory_tags,
-                                   exclude_tags=exclude_tags, hostname_preferences=hostname_preference)
+                                   exclude_tags=exclude_tags, hostname_preferences=hostname_preference, query_parameters=query_parameters)
