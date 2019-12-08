@@ -334,7 +334,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             return set()
         else:
             # we just have to add the mandatory_tags
-            return matching_tags.union((server_zone,)).union(mandatory_tags)
+            return matching_tags.union((server_zone,)).union(mandatory_tags).union(server_tags)
 
     def _filter_host(self, host_infos, hostname_preferences):
 
