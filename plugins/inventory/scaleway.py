@@ -176,7 +176,7 @@ import json
 
 from ansible.errors import AnsibleError
 from ansible.plugins.inventory import BaseInventoryPlugin, Constructable
-from ansible_collections.sh4d1.scaleway.plugins.module_utils.scaleway import SCALEWAY_LOCATION, parse_pagination_link
+from ansible_collections.sh4d1.scaleway.plugins.module_utils.scaleway import parse_pagination_link, scaleway_argument_spec
 from ansible.module_utils.urls import open_url
 from ansible.module_utils._text import to_native
 from ansible.module_utils.six.moves.urllib.parse import urlencode
@@ -301,9 +301,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         if extract_private_ipv4(server_info=server_info):
             self.inventory.set_variable(host, "private_ipv4", extract_private_ipv4(server_info=server_info))
 
-    def _get_zones(self, config_zones):
-        return set(SCALEWAY_LOCATION.keys()).intersection(config_zones)
-
     def match_groups(self, server_info, tags, mandatory_tags, exclude_tags):
         server_zone = extract_zone(server_info=server_info)
         server_tags = extract_tags(server_info=server_info)
@@ -346,9 +343,10 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 
     def do_zone_inventory(self, zone, token, tags, mandatory_tags, exclude_tags, hostname_preferences, query_parameters):
         self.inventory.add_group(zone)
-        zone_info = SCALEWAY_LOCATION[zone]
 
-        url = _build_server_url(zone_info["api_endpoint"], query_parameters)
+        base_url = scaleway_argument_spec()["api_url"] + '/instance/v1/zones/' + zone
+
+        url = _build_server_url(base_url, query_parameters)
         raw_zone_hosts_infos = _fetch_information(url=url, token=token)
 
         for host_infos in raw_zone_hosts_infos:
@@ -385,6 +383,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         if organization_id is not None:
             query_parameters = urlencode({"organization": organization_id}, doseq=True)
 
-        for zone in self._get_zones(config_zones):
+        for zone in set(config_zones):
             self.do_zone_inventory(zone=zone, token=token, tags=tags, mandatory_tags=mandatory_tags,
                                    exclude_tags=exclude_tags, hostname_preferences=hostname_preference, query_parameters=query_parameters)
