@@ -18,12 +18,12 @@ DOCUMENTATION = '''
             description: token that ensures this is a source file for the 'scaleway' plugin.
             required: True
             choices: ['scaleway']
-        regions:
+        zones:
             description: Filter results on a specific Scaleway region
             type: list
             default:
-                - ams1
-                - par1
+                - nl-ams-1
+                - fr-par-1
         tags:
             description: Filter results on a specific tag
             type: list
@@ -41,6 +41,12 @@ DOCUMENTATION = '''
                 - name: SCW_TOKEN
                 - name: SCW_API_KEY
                 - name: SCW_OAUTH_TOKEN
+        api_url:
+            required: False
+            description: Scaleway API URL
+            default: https://api.scaleway.com
+            env:
+                - name: SCW_API_URL
         organization_id:
             description: Organization ID to use
             env:
@@ -72,9 +78,9 @@ EXAMPLES = '''
 # use hostname as inventory_hostname
 # use the private IP address to connect to the host
 plugin: scaleway
-regions:
-  - ams1
-  - par1
+zones:
+  - nl-ams-1
+  - fr-par-1
 tags:
   - foobar
 hostnames:
@@ -87,8 +93,8 @@ variables:
 plugin: scaleway
 hostnames:
   - hostname
-regions:
-  - par1
+zones:
+  - fr-par-1
 variables:
   ansible_host: public_ip.address
 
@@ -96,8 +102,8 @@ variables:
 plugin: scaleway
 hostnames:
   - hostname
-regions:
-  - par1
+zones:
+  - fr-par-1
 exclude_tags:
   - bar
   - foo
@@ -106,8 +112,8 @@ exclude_tags:
 plugin: scaleway
 hostnames:
   - hostname
-regions:
-  - par1
+zones:
+  - fr-par-1
 mandatory_tags:
   - bar
   - foo
@@ -117,8 +123,8 @@ mandatory_tags:
 plugin: scaleway
 hostnames:
   - hostname
-regions:
-  - par1
+zones:
+  - fr-par-1
 mandatory_tags:
   - bar
   - foo
@@ -131,8 +137,8 @@ tags:
 plugin: scaleway
 hostnames:
   - hostname
-regions:
-  - par1
+zones:
+  - fr-par-1
 tags:
   - bar
   - foo
@@ -145,8 +151,8 @@ exclude_tags:
 plugin: scaleway
 hostnames:
   - hostname
-regions:
-  - par1
+zones:
+  - fr-par-1
 mandatory_tags:
   - bar
   - foo
@@ -159,8 +165,8 @@ exclude_tags:
 plugin: scaleway
 hostnames:
   - hostname
-regions:
-  - par1
+zones:
+  - fr-par-1
 mandatory_tags:
   - bar
   - foo
@@ -176,7 +182,7 @@ import json
 
 from ansible.errors import AnsibleError
 from ansible.plugins.inventory import BaseInventoryPlugin, Constructable
-from ansible_collections.sh4d1.scaleway.plugins.module_utils.scaleway import parse_pagination_link, scaleway_argument_spec
+from ansible_collections.sh4d1.scaleway.plugins.module_utils.scaleway import parse_pagination_link
 from ansible.module_utils.urls import open_url
 from ansible.module_utils._text import to_native
 from ansible.module_utils.six.moves.urllib.parse import urlencode
@@ -341,12 +347,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 
         return None
 
-    def do_zone_inventory(self, zone, token, tags, mandatory_tags, exclude_tags, hostname_preferences, query_parameters):
-        self.inventory.add_group(zone)
-
-        base_url = scaleway_argument_spec()["api_url"] + '/instance/v1/zones/' + zone
-
-        url = _build_server_url(base_url, query_parameters)
+    def do_zone_inventory(self, url, token, tags, mandatory_tags, exclude_tags, hostname_preferences):
         raw_zone_hosts_infos = _fetch_information(url=url, token=token)
 
         for host_infos in raw_zone_hosts_infos:
@@ -372,7 +373,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         super(InventoryModule, self).parse(inventory, loader, path)
         self._read_config_data(path=path)
 
-        config_zones = self.get_option("regions")
+        config_zones = self.get_option("zones")
         tags = self.get_option("tags")
         mandatory_tags = self.get_option("mandatory_tags")
         exclude_tags = self.get_option("exclude_tags")
@@ -384,5 +385,8 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             query_parameters = urlencode({"organization": organization_id}, doseq=True)
 
         for zone in set(config_zones):
-            self.do_zone_inventory(zone=zone, token=token, tags=tags, mandatory_tags=mandatory_tags,
-                                   exclude_tags=exclude_tags, hostname_preferences=hostname_preference, query_parameters=query_parameters)
+            self.inventory.add_group(zone)
+            api_url = self.get_option("api_url") + '/instance/v1/zones/' + zone
+            url = _build_server_url(api_url, query_parameters)
+            self.do_zone_inventory(url=url, token=token, tags=tags, mandatory_tags=mandatory_tags,
+                                   exclude_tags=exclude_tags, hostname_preferences=hostname_preference)
