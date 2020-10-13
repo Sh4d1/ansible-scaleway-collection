@@ -190,11 +190,13 @@ from ansible.module_utils.six.moves.urllib.parse import urlencode
 import ansible.module_utils.six.moves.urllib.parse as urllib_parse
 
 
-def _fetch_information(token, url):
+def _fetch_information(token, url, url_suffix):
     results = []
-    paginated_url = url
+    base_url = url
+    paginated_url = url + url_suffix
     while True:
         try:
+            print(paginated_url)
             response = open_url(paginated_url,
                                 headers={'X-Auth-Token': token,
                                          'Content-type': 'application/json'})
@@ -216,11 +218,11 @@ def _fetch_information(token, url):
         relations = parse_pagination_link(link)
         if 'next' not in relations:
             return results
-        paginated_url = urllib_parse.urljoin(paginated_url, relations['next'])
+        paginated_url = base_url + relations['next']
 
 
-def _build_server_url(api_endpoint, query_string):
-    return '%s/%s?%s' % (api_endpoint, "servers", query_string)
+def _build_server_url_suffix(query_string):
+    return '/%s?%s' % ("servers", query_string)
 
 
 def extract_public_ipv4(server_info):
@@ -347,8 +349,8 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 
         return None
 
-    def do_zone_inventory(self, url, token, tags, mandatory_tags, exclude_tags, hostname_preferences):
-        raw_zone_hosts_infos = _fetch_information(url=url, token=token)
+    def do_zone_inventory(self, url, url_suffix, token, tags, mandatory_tags, exclude_tags, hostname_preferences):
+        raw_zone_hosts_infos = _fetch_information(url=url, url_suffix=url_suffix, token=token)
 
         for host_infos in raw_zone_hosts_infos:
 
@@ -387,6 +389,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         for zone in set(config_zones):
             self.inventory.add_group(zone)
             api_url = self.get_option("api_url") + '/instance/v1/zones/' + zone
-            url = _build_server_url(api_url, query_parameters)
-            self.do_zone_inventory(url=url, token=token, tags=tags, mandatory_tags=mandatory_tags,
+            suffix = _build_server_url_suffix(query_parameters)
+            self.do_zone_inventory(url=api_url, url_suffix=suffix, token=token, tags=tags, mandatory_tags=mandatory_tags,
                                    exclude_tags=exclude_tags, hostname_preferences=hostname_preference)
