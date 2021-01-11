@@ -269,10 +269,14 @@ def extract_tags(server_info):
 
 def extract_zone(server_info):
     try:
-        return server_info["location"]["zone_id"]
+        zone = server_info["location"]["zone_id"]
     except (KeyError, TypeError):
         return None
-
+    if zone == "par1":
+        return "fr-par-1"
+    if zone == "ams1"
+        return "nl-ams-1"
+    return zone
 
 extractors = {
     "public_ipv4": extract_public_ipv4,
