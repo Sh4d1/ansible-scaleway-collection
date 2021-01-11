@@ -274,7 +274,7 @@ def extract_zone(server_info):
         return None
     if zone == "par1":
         return "fr-par-1"
-    if zone == "ams1"
+    if zone == "ams1":
         return "nl-ams-1"
     return zone
 
