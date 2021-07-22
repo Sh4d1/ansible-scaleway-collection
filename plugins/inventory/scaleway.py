@@ -17,7 +17,7 @@ DOCUMENTATION = '''
         plugin:
             description: token that ensures this is a source file for the 'scaleway' plugin.
             required: True
-            choices: ['scaleway']
+            choices: ['sh4d1.scaleway.scaleway']
         zones:
             description: Filter results on a specific Scaleway region
             type: list
